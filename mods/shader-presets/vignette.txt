@@ -1,0 +1,17 @@
+{"color":[0,0,0,1],"extend":0.25,"radius":15.0}
+
+precision mediump float;
+
+varying lowp vec2 vTexCoord;
+uniform sampler2D uSampler;
+
+uniform vec4 color; // %0.0, 0.0, 0.0, 1.0%
+uniform float extend; // %0.25% 0..1
+uniform float radius; // %15.0%
+
+void main() {
+  vec2 new_uv = vTexCoord * (1.0 - vTexCoord.yx);
+  float vig = new_uv.x * new_uv.y * radius;
+  vig = pow(vig, extend);
+  gl_FragColor = mix(color, texture2D(uSampler, vTexCoord), vig);
+}

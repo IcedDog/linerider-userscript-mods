@@ -1,0 +1,16 @@
+{"size":10}
+
+precision mediump float;
+
+varying lowp vec2 vTexCoord;
+uniform vec2 uResolution;
+uniform sampler2D uSampler;
+
+uniform float size; // %10.0%
+
+void main() {
+  vec2 factor = uResolution / size;
+  float x = floor(vTexCoord.x * factor.x + 0.5) / factor.x;
+  float y = floor(vTexCoord.y * factor.y + 0.5) / factor.y;
+  gl_FragColor = texture2D(uSampler, vec2(x, y));
+}
