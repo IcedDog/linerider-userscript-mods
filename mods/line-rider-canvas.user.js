@@ -3,7 +3,7 @@
 // @name         Line Rider Canvas Mod
 // @author       IcedDog
 // @description  Regenerate the canvas and add some features.
-// @version      1.0
+// @version      1.1
 
 // @namespace    http://tampermonkey.net/
 // @match        https://www.linerider.com/*
@@ -12,8 +12,8 @@
 // @match        https://square-rider.surge.sh/*
 // @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.2.0/math.js
 // @grant        none
-// @downloadURL  https://github.com/Malizma333/linerider-userscript-mods/raw/master/mods/line-rider-graph-mod.user.js
-// @updateURL    https://github.com/Malizma333/linerider-userscript-mods/raw/master/mods/line-rider-graph-mod.user.js
+// @downloadURL  https://raw.githubusercontent.com/IcedDog/linerider-userscript-mods/master/mods/line-rider-canvas.user.js
+// @updateURL    https://raw.githubusercontent.com/IcedDog/linerider-userscript-mods/master/mods/line-rider-canvas.user.js
 // ==/UserScript==
 
 const getCanvas = () => {
@@ -39,6 +39,53 @@ uniform sampler2D uSampler;
 void main() {
 	  gl_FragColor = texture2D(uSampler, vTexCoord);
 }`;
+
+/*
+const exampleFragmentShader = `
+precision mediump float;
+varying vec2 vTexCoord;
+uniform sampler2D uSampler;
+
+uniform vec4 originalColor;
+uniform vec4 targetColor;
+
+void main() {
+	vec4 color = texture2D(uSampler, vTexCoord);
+	if (color == originalColor) {
+		gl_FragColor = targetColor;
+	} else {
+		gl_FragColor = color;
+	}
+}`;
+
+
+setCustomRiders(["     .outline {stroke: black}      .skin {fill: #f0f0f0ff}      .hair {fill: black}      .fill {fill: black}      #eye {fill: black}      .sled {fill: #f0f0f0ff}      #string {stroke: black}      .arm .sleeve {fill: black}      .arm .hand {fill: #f0f0f0ff}      .leg .pants {fill: black}      .leg .foot {fill: white}      .torso {fill: #f0f0f0ff}      .scarf1 {fill: #FD4F38}      .scarf2 {fill: #f0f0f0ff}      .scarf3 {fill: #06A725}      .scarf4 {fill: #f0f0f0ff}      .scarf5 {fill: #3995FD}      #scarf0 {fill: #f0f0f0ff}      #scarf1 {fill: #FD4F38}      #scarf2 {fill: #f0f0f0ff}      #scarf3 {fill: #06A725}      #scarf4 {fill: #f0f0f0ff}      #scarf5 {fill: #3995FD}      .hat .top {fill: #f0f0f0ff}      .hat .bottom {stroke: black}      .hat .ball {fill: black}      .flag {fill: #00000066}    "]);
+
+
+function setUniform(time) {
+	function lerpVec4(a, b, t) {
+		function lerp(a, b, t) {
+			return a + (b - a) * t;
+		}
+		return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t), lerp(a[3], b[3], t)];
+	}
+	let color = [1, 1, 1, 1];
+	let colorList = [
+		[1, 1, 1, 1],
+		[0.36, 0.13, 0.14, 1],
+		[0.55, 0.18, 0.18, 1],
+		[0.71, 0.24, 0.24, 1],
+		[0.9, 0.3, 0.3, 1],
+		[1, 0.4, 0.4, 1],
+		[1, 0.6, 0.6, 1],
+		[1, 0.8, 0.8, 1],
+		[1, 1, 1, 1],
+	]
+	let colorIndex = Math.floor(time * 2) % (colorList.length - 1);
+	let currentColor = lerpVec4(colorList[colorIndex], colorList[colorIndex + 1], time * 2 - colorIndex);
+	return `{"originalColor": [1, 1, 1, 1], "targetColor": [${currentColor[0]}, ${currentColor[1]}, ${currentColor[2]}, ${currentColor[3]}]}`;
+}
+*/
 
 let shaderProgram = (gl, vertexShader, fragmentShader) => {
 	return createProgram(
@@ -80,7 +127,10 @@ class CanvasMod {
 			applyCanvas(this);
 		}
 
-		if (this.state.canvasActive) updateCanvas(this);
+		if (this.state.canvasActive) {
+			updateUniforms(this);
+			updateCanvas(this);
+		}
 	}
 }
 
@@ -99,7 +149,8 @@ function main() {
 				canvasActive: false,
 				shaderActive: false,
 				shader: "",
-				uniforms: ""
+				uniforms: "",
+				program: "",
 			};
 
 			this.canvasMod = new CanvasMod(store, this.state);
@@ -157,32 +208,40 @@ function main() {
 				"div",
 				null,
 				this.state.active &&
+				create(
+					"div",
+					null,
 					create(
 						"div",
 						null,
-						create(
-							"div",
-							null,
-							"Shader:",
-							create("textArea", {
-								style: { width: "88%" },
-								type: "text",
-								value: this.state.shader,
-								onChange: (create) =>
-									this.setState({ shader: create.target.value }),
-							}),
-							"Uniforms:",
-							create("textArea", {
-								style: { width: "88%" },
-								type: "text",
-								value: this.state.uniforms,
-								onChange: (create) =>
-									this.setState({ uniforms: create.target.value }),
-							}),
-							this.renderCheckbox("shaderActive", "Shader Active"),
-							this.renderCheckbox("canvasActive", "Canvas Active")
-						)
-					),
+						"Shader:",
+						create("textArea", {
+							style: { width: "88%" },
+							type: "text",
+							value: this.state.shader,
+							onChange: (create) =>
+								this.setState({ shader: create.target.value }),
+						}),
+						"Uniforms:",
+						create("textArea", {
+							style: { width: "88%" },
+							type: "text",
+							value: this.state.uniforms,
+							onChange: (create) =>
+								this.setState({ uniforms: create.target.value }),
+						}),
+						"Program",
+						create("textArea", {
+							style: { width: "88%" },
+							type: "text",
+							value: this.state.program,
+							onChange: (create) =>
+								this.setState({ program: create.target.value }),
+						}),
+						this.renderCheckbox("shaderActive", "Shader Active"),
+						this.renderCheckbox("canvasActive", "Canvas Active")
+					)
+				),
 				create(
 					"button",
 					{
@@ -226,13 +285,28 @@ function updateCanvas(canvasMod) {
 						: defaultFragmentShader
 				);
 				const texture = loadTexture(gl, canvasMod.originalCanvas);
-				renderTexture(gl, shader, texture, canvasMod.state.uniforms=== "" ? {} : JSON.parse(canvasMod.state.uniforms));
+				renderTexture(gl, shader, texture, canvasMod.state.uniforms === "" ? {} : JSON.parse(canvasMod.state.uniforms));
 			}
 	} catch (e) {
 		console.log(e);
 		return;
 	}
 	return;
+}
+
+function updateUniforms(canvasMod) {
+	if (canvasMod.state.program === "") {
+		return;
+	}
+	try {
+		// run the program as a function which takes a time as a input that updates the uniforms
+		let customFunction = new Function("time", canvasMod.state.program);
+		let time = window.store.getState().player.index / window.store.getState().player.settings.fps;
+		canvasMod.state.uniforms = customFunction(time);
+	} catch (e) {
+		console.log(e);
+		return;
+	}
 }
 
 function applyCanvas(canvasMod) {
